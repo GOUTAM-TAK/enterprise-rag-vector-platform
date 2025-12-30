@@ -1,7 +1,7 @@
 import asyncio
 from typing import List
-from rag_core.ingestion.loader import DocumentChunk
-from rag_core.embeddings.tokenizer import SentenceTokenizerProvider
+from app.rag_core.ingestion.loader import DocumentChunk
+from app.rag_core.embeddings.tokenizer import SentenceTokenizerProvider
 
 
 class AsyncSentenceChunker:
