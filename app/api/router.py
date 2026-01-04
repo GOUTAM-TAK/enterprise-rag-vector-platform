@@ -1,5 +1,6 @@
 from fastapi import APIRouter
-from app.api.ingestion import router as ingestion_router
+from app.api.endpoints.ingestion import router as ingestion_router
+from app.api.endpoints.ws_chat import router as ws_chat_router
 # Feature routers
 
 # Future routers (placeholders)
@@ -25,6 +26,10 @@ api_router.include_router(
     ingestion_router,
     prefix="/ingest",
     tags=["RAG Ingestion"],
+)
+
+api_router.include_router(
+    ws_chat_router,
 )
 
 # -------------------------

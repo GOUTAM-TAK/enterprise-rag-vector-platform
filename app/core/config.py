@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     # -------------------------
     CHUNK_SIZE: int = 1000
     CHUNK_OVERLAP: int = 150
+    # -------------------------
+    # Runtime / ML Configuration
+    # -------------------------
+    TOKENIZERS_PARALLELISM: bool = False
 
     # -------------------------
     # Ingestion Configuration
@@ -42,6 +46,15 @@ class Settings(BaseSettings):
     MAX_UPLOAD_MB: int = 20
 
     OPENAI_API_KEY: str
+
+    
+    # LLM Configuration
+    NVIDIA_API_KEY: str
+    NVIDIA_BASE_URL: str
+    NVIDIA_MODELS: str
+    NVIDIA_DEFAULT_MODEL: str
+
+
 
     # -------------------------
     # Validation (Pydantic v2)
@@ -53,6 +66,11 @@ class Settings(BaseSettings):
         if chunk_size is not None and v >= chunk_size:
             raise ValueError("CHUNK_OVERLAP must be smaller than CHUNK_SIZE")
         return v
+    
+    @property
+    def nvidia_model_list(self) -> list[str]:
+        return [m.strip() for m in self.NVIDIA_MODELS.split(",")]
+
 
     class Config:
         env_file = ".env"

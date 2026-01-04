@@ -3,6 +3,9 @@ from contextlib import asynccontextmanager
 
 from app.api.router import api_router
 from app.rag_core.vectorstore.pinecone_client import PineconeClient
+from app.rag_core.embeddings.embedder import AsyncSentenceEmbedder
+from app.rag_core.llm.llm_registry import LLMRegistry
+from app.core.config import settings
 from app.core.logger import get_logger
 
 logger = get_logger("startup")
@@ -10,22 +13,37 @@ logger = get_logger("startup")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """
-    Application lifecycle manager.
-    Executes startup and shutdown logic.
-    """
     logger.info("Application startup initiated")
 
+    # -------------------------
+    # Initialize Pinecone (ONCE)
+    # -------------------------
     pinecone_client = PineconeClient()
     pinecone_client.initialize()
 
-    logger.info("Pinecone initialized successfully")
+    # -------------------------
+    # Initialize Embedder (ONCE)
+    # -------------------------
+    embedder = AsyncSentenceEmbedder(
+        model_name=settings.EMBEDDING_MODEL
+    )
+
+     # LLM Registry
+    llm_registry = LLMRegistry()
+    llm_registry.initialize()
+    # -------------------------
+    # Store in app.state
+    # -------------------------
+    app.state.pinecone = pinecone_client
+    app.state.embedder = embedder
+    app.state.llms = llm_registry
+
+    logger.info("Shared resources initialized")
     logger.info("Application startup completed")
 
-    yield  # ---- Application is running ----
+    yield  # ---- App is running ----
 
     logger.info("Application shutdown initiated")
-    # Place cleanup logic here if needed
     logger.info("Application shutdown completed")
 
 
