@@ -23,6 +23,14 @@ class Settings(BaseSettings):
     PINECONE_INDEX_NAME: str = "enterprise-rag-index"
     PINECONE_CLOUD: str = "aws"
     PINECONE_REGION: str = "us-east-1"
+    NAME_SPACE: str = "Enterprise-RAG"
+    RAG_ACCESS_LEVELS : dict[str, int]= {
+    "public": 1,
+    "internal": 2,
+    "sensitive": 3,
+    "restrictive": 4,
+    }
+
 
     # -------------------------
     # Embeddings Configuration

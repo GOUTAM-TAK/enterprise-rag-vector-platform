@@ -1,6 +1,6 @@
 import uuid
 from pathlib import Path
-
+from fastapi import Request
 from app.rag_core.ingestion.loader import AsyncDocumentLoader
 from app.rag_core.ingestion.chunker import AsyncSentenceChunker
 from app.rag_core.embeddings.embedder import AsyncSentenceEmbedder
@@ -17,10 +17,11 @@ class IngestionService:
     """
 
     @staticmethod
-    async def ingest_document(file_path: Path):
+    async def ingest_document(file_path: Path, request: Request,rag_access_level:str,access_rank:int):
         document_id = str(uuid.uuid4())
 
         try:
+            
             logger.info(f"Starting ingestion | doc_id={document_id}")
 
             # ---------- Load document ----------
@@ -44,14 +45,13 @@ class IngestionService:
             )
 
             # ---------- Embed chunks ----------
-            embedder = AsyncSentenceEmbedder(
-                model_name=settings.EMBEDDING_MODEL
-            )
+            embedder = request.app.state.embedder
 
             texts = [chunk.text for chunk in chunks]
             embeddings = await embedder.embed_texts(texts)
 
             # ---------- Prepare Pinecone vectors ----------
+            
             vectors = []
             for i, (chunk, vector) in enumerate(zip(chunks, embeddings)):
                 vectors.append(
@@ -61,15 +61,20 @@ class IngestionService:
                         "metadata": {
                             **chunk.metadata,
                             "document_id": document_id,
-                        },
+                            "text": chunk.text,
+                            "rag_access_level": rag_access_level,
+                            "rag_access_level_rank": access_rank,  # 🔑 critical
+                        }
+
+                        ,
                     }
                 )
 
             # ---------- Upsert to Pinecone ----------
-            pinecone = PineconeClient()
+            pinecone = request.app.state.pinecone
             await pinecone.upsert(
                 vectors=vectors,
-                namespace=document_id,
+                namespace=settings.NAME_SPACE,
             )
 
             logger.info(

@@ -94,12 +94,14 @@ class PineconeClient:
         )
 
     async def query(
-        self,
-        vector: list,
-        namespace: str,
-        top_k: int = 5,
-        include_metadata: bool = True,
+    self,
+    vector: list,
+    namespace: str,
+    top_k: int = 5,
+    include_metadata: bool = True,
+    metadata_filter: dict | None = None,
     ):
+
         """
         Async query from Pinecone.
         """
@@ -118,6 +120,7 @@ class PineconeClient:
                 top_k=top_k,
                 namespace=namespace,
                 include_metadata=include_metadata,
+                filter=metadata_filter,
             ),
         )
 

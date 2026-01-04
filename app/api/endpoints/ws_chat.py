@@ -2,6 +2,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 import json
 from app.service.chat_service import ChatService
 from app.core.logger import get_logger
+from app.core.metrics import ACTIVE_WS_CONNECTIONS
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -11,6 +12,7 @@ logger = get_logger(__name__)
 async def chat_websocket(ws: WebSocket):
     await ws.accept()
     logger.info("WebSocket connected")
+    ACTIVE_WS_CONNECTIONS.inc()
 
     try:
         while True:
@@ -31,3 +33,6 @@ async def chat_websocket(ws: WebSocket):
 
     except WebSocketDisconnect:
         logger.info("WebSocket disconnected")
+
+    finally:
+        ACTIVE_WS_CONNECTIONS.dec()

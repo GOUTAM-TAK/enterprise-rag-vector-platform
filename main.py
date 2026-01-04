@@ -7,9 +7,11 @@ from app.rag_core.embeddings.embedder import AsyncSentenceEmbedder
 from app.rag_core.llm.llm_registry import LLMRegistry
 from app.core.config import settings
 from app.core.logger import get_logger
+from prometheus_client import make_asgi_app
 
 logger = get_logger("startup")
 
+metrics_app = make_asgi_app()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -53,3 +55,4 @@ app = FastAPI(
 )
 
 app.include_router(api_router, prefix="/api/v1")
+app.mount("/metrics", metrics_app)
