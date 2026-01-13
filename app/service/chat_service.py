@@ -12,6 +12,7 @@ from app.core.metrics import (
     CHAT_TOTAL_LATENCY,
     LLM_FIRST_TOKEN_LATENCY,
 )
+from app.utils.guardrail_utils import GuardrailUtils
 from app.utils.rag_utils import RAGUtils
 
 logger = get_logger(__name__)
@@ -30,6 +31,7 @@ class ChatService:
         start_time = perf_counter()
 
         query = payload.get("query")
+     
         namespace = payload.get("namespace")
         model_name = payload.get("model")
 
@@ -86,22 +88,60 @@ class ChatService:
         try:
             rails = ws.app.state.guardrails
 
-            response = rails.generate(
-                messages=[{"role": "user", "content": query}],
-                context={
-                    "user_role": payload.get("user_role", "user"),
-                    "rag_required": True,
-                },
+            guardrail_response = await rails.generate_async(
+                messages=[
+                    {"role": "user", "content": query}
+                ],
+                options={
+                    "rails": ["input"],
+                    "input_vars": {
+                        "user_role": payload.get("user_role", "user"),
+                        "rag_stage": "pre",
+                        "rag_required": False,
+                        "has_verified_context": False,
+                        "enterprise_domain": "sutherland_global_services",
+                        "assistant_scope": "enterprise_only",
+                    },
+                    "log": {
+                        "activated_rails": True,
+                    }
+                }
             )
+            activated = guardrail_response.log.activated_rails
+
+            for idx, rail in enumerate(activated, start=1):
+                logger.debug(
+                    "Pre Guardrail triggered | index=%d | raw=%s",
+                    idx,
+                    repr(rail),
+                )
+
+
 
             # Guardrails refusal = no continuation
-            if response is None or response.strip() == "":
+            # 1️⃣ Check hard stop (authoritative)
+            if GuardrailUtils.is_guardrail_blocked(guardrail_response):
                 CHAT_ERRORS_TOTAL.inc()
+
+                # 2️⃣ Extract safe user-facing message
+                guardrail_text = GuardrailUtils.extract_guardrail_text(
+                    guardrail_response
+                )
+
+                logger.warning(
+                    "Guardrails denied input | stage=pre | model=%s | message=%s",
+                    model_name,
+                    guardrail_text,
+                )
+
+                # 3️⃣ Return refusal to client
                 await ws.send_json({
                     "event_type": "chat_refusal",
-                    "message": "Request not allowed by policy",
+                    "rag_stage": "pre",
+                    "message": guardrail_text,
                 })
                 return
+
 
 
 
@@ -163,14 +203,59 @@ class ChatService:
 
             has_context = bool(contexts)
 
-            response = rails.generate(
-                messages=[{"role": "user", "content": query}],
-                context={
-                    "user_role": payload.get("user_role", "user"),
-                    "rag_required": True,
-                    "has_verified_context": has_context,
-                },
+            # -------------------------
+            # Guardrails validation (post-retrieval awareness)
+            # -------------------------
+            guardrail_response = await rails.generate_async(
+                messages=[
+                    {"role": "user", "content": query}
+                ],
+                options={
+                    "rails": ["input", "dialog"],
+                    "input_vars": {
+                        "user_role": payload.get("user_role", "user"),
+                        "rag_stage": "post",
+                        "rag_required": True,
+                        "has_verified_context": has_context,
+                        "enterprise_domain": "sutherland_global_services",
+                        "assistant_scope": "enterprise_only",
+                    },
+                    "log": {
+                        "activated_rails": True,
+                    }
+                }
             )
+            activated = guardrail_response.log.activated_rails
+
+            for idx, rail in enumerate(activated, start=1):
+                logger.debug(
+                    "Post Guardrail triggered | index=%d | raw=%s",
+                    idx,
+                    repr(rail),
+                )
+
+
+            if GuardrailUtils.is_guardrail_blocked(guardrail_response):
+                CHAT_ERRORS_TOTAL.inc()
+
+                # 2️⃣ Extract safe user-facing message
+                guardrail_text = GuardrailUtils.extract_guardrail_text(
+                    guardrail_response
+                )
+
+                logger.warning(
+                    "Guardrails denied | stage=post | model=%s | message=%s",
+                    model_name,
+                    guardrail_text,
+                )
+
+                # 3️⃣ Return refusal to client
+                await ws.send_json({
+                    "event_type": "chat_refusal",
+                    "rag_stage": "post",
+                    "message": guardrail_text,
+                })
+                return
 
 
             # -------------------------

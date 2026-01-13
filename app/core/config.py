@@ -54,7 +54,11 @@ class Settings(BaseSettings):
     MAX_UPLOAD_MB: int = 20
 
     OPENAI_API_KEY: str
-
+    AZURE_API_KEY: str
+    AZURE_MODEL: str
+    AZURE_OPENAI_ENDPOINT: str
+    AZURE_API_VERSION: str
+    OPENAI_API_VERSION: str
     
     # LLM Configuration
     NVIDIA_API_KEY: str

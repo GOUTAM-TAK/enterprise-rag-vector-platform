@@ -1,34 +1,44 @@
-define flow prevent_prompt_injection:
-    if "ignore previous instructions" in user_message:
-        bot say_refusal
-        stop
+define flow prevent_prompt_injection
+    when user said something
+        if "ignore previous instructions" in last_user_message
+            bot say_refusal
+            stop
+
 
 # -------------------------------------------------
 # INPUT SAFETY
 # -------------------------------------------------
-define flow content_safety_check_input:
-    $result = execute content_safety_check text=user_message
-    if not $result.allowed:
-        bot say_refusal
-        stop
+define flow content_safety_check_input
+    when user said something
+        $result = execute content_safety_check text=last_user_message
+        if not $result.allowed
+            bot say_refusal
+            stop
 
-define flow topic_safety_check_input:
-    $result = execute topic_safety_check=user_message
-    if not $result.allowed:
-        bot say_refusal
-        stop
+
+define flow topic_safety_check_input
+    when user said something
+        $result = execute topic_safety_check text=last_user_message
+        if not $result.allowed
+            bot say_refusal
+            stop
+
 
 # -------------------------------------------------
 # OUTPUT SAFETY
 # -------------------------------------------------
-define flow content_safety_check_output:
-    $result = execute content_safety_check text=bot_message
-    if not $result.allowed:
-        bot say_refusal
-        stop
+define flow content_safety_check_output
+    when bot said something
+        $result = execute content_safety_check text=last_bot_message
+        if not $result.allowed
+            bot say_refusal
+            stop
 
-define flow self_check_output:
-    $check = execute self_check_output=bot_message
-    if not $check.allowed:
-        bot say_refusal
-        stop
+
+define flow self_check_output
+    when bot said something
+        $check = execute self_check_output text=last_bot_message
+        if not $check.allowed
+            bot say_refusal
+            stop
+

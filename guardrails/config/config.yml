@@ -1,15 +1,19 @@
 models:
   - type: main
-    engine: openai
-    model: gpt-4o-mini
+    engine: azure
+    model: gpt-4o
+    api_key: ${AZURE_API_KEY}
+    api_base: https://voicelive1-resource.cognitiveservices.azure.com/
+    api_version: 2024-12-01-preview
+    deployment_name: gpt-4o
 
 
 rails:
   input:
     parallel: true
-    flows:
-      - content_safety_check_input
-      - topic_safety_check_input
+    flows: []
+      # - content_safety_check_input
+      # - topic_safety_check_input
 
   dialog:
     flows:
