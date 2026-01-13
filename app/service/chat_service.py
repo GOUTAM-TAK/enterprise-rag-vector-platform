@@ -40,6 +40,30 @@ class ChatService:
                 "message": "Query is required",
             })
             return
+        # -------------------------
+        # Intent validation (enterprise-owned)
+        # -------------------------
+        SUPPORTED_INTENTS = {
+            "ask_question",
+            "search_documents",
+            "summarize_content",
+        }
+
+        user_intent = payload.get("intent", "ask_question")
+
+        if user_intent not in SUPPORTED_INTENTS:
+            CHAT_ERRORS_TOTAL.inc()
+            logger.warning(
+                "Unsupported intent received | intent=%s | model=%s",
+                user_intent,
+                model_name,
+            )
+            await ws.send_json({
+                "event_type": "chat_refusal",
+                "message": "Unsupported intent",
+            })
+            return
+
 
         # -------------------------
         # Metrics: request count
@@ -60,6 +84,27 @@ class ChatService:
         )
 
         try:
+            rails = ws.app.state.guardrails
+
+            response = rails.generate(
+                messages=[{"role": "user", "content": query}],
+                context={
+                    "user_role": payload.get("user_role", "user"),
+                    "rag_required": True,
+                },
+            )
+
+            # Guardrails refusal = no continuation
+            if response is None or response.strip() == "":
+                CHAT_ERRORS_TOTAL.inc()
+                await ws.send_json({
+                    "event_type": "chat_refusal",
+                    "message": "Request not allowed by policy",
+                })
+                return
+
+
+
             # -------------------------
             # 1. Embed query
             # -------------------------
@@ -115,6 +160,18 @@ class ChatService:
                     namespace,
                     query[:100],
                 )
+
+            has_context = bool(contexts)
+
+            response = rails.generate(
+                messages=[{"role": "user", "content": query}],
+                context={
+                    "user_role": payload.get("user_role", "user"),
+                    "rag_required": True,
+                    "has_verified_context": has_context,
+                },
+            )
+
 
             # -------------------------
             # 3. Fetch preloaded LLM

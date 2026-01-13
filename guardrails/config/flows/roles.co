@@ -1,0 +1,6 @@
+define flow route_by_role:
+    if user_role == "admin":
+        continue
+    if user_role == "user":
+        bot say_refusal
+        stop

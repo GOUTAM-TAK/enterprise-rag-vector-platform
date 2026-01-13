@@ -1,0 +1,2 @@
+define flow enforce_refusal_policy:
+    bot say_refusal

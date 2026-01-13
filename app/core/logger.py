@@ -65,6 +65,20 @@ def _setup_async_logging():
     )
     _listener.start()
 
+    # ============================================================
+    # NeMo Guardrails Logger Registration (CRITICAL)
+    # ============================================================
+    guardrails_logger = logging.getLogger("nemoguardrails")
+    guardrails_logger.setLevel(logging.DEBUG)
+    guardrails_logger.addHandler(logging.handlers.QueueHandler(_log_queue))
+    guardrails_logger.propagate = False
+
+    # Optional: LangChain (helps debugging flows + providers)
+    langchain_logger = logging.getLogger("langchain")
+    langchain_logger.setLevel(logging.INFO)
+    langchain_logger.addHandler(logging.handlers.QueueHandler(_log_queue))
+    langchain_logger.propagate = False
+
 
 def get_logger(name: str) -> logging.Logger:
     """

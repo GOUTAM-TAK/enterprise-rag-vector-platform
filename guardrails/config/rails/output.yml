@@ -1,0 +1,4 @@
+output_rails:
+  - name: enforce_refusal_policy
+    description: >
+      Ensure refusals are consistent and brand-safe.

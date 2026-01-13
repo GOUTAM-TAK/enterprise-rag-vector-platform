@@ -1,0 +1,32 @@
+models:
+  - type: main
+    engine: openai
+    model: gpt-4o-mini
+
+
+rails:
+  input:
+    parallel: true
+    flows:
+      - content_safety_check_input
+      - topic_safety_check_input
+
+  dialog:
+    flows:
+      - route_by_role
+      - enforce_rag_flow
+
+  output:
+    parallel: true
+    flows:
+      - content_safety_check_output
+      - self_check_output
+      - enforce_refusal_policy
+
+    streaming:
+      enabled: true
+      chunk_size: 200
+      context_size: 50
+      stream_first: true
+
+streaming: true

@@ -1,0 +1,4 @@
+input_rails:
+  - name: prevent_prompt_injection
+    description: >
+      Block attempts to override system behavior or extract policies.

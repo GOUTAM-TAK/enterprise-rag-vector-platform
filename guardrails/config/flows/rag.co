@@ -1,0 +1,4 @@
+define flow enforce_rag_flow:
+    if rag_required and not has_verified_context:
+        bot say_refusal
+        stop
