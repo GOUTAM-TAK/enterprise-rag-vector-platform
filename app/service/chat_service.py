@@ -93,7 +93,7 @@ class ChatService:
                     {"role": "user", "content": query}
                 ],
                 options={
-                    "rails": ["input"],
+                    "rails": ["input","dialog","output"],
                     "input_vars": {
                         "user_role": payload.get("user_role", "user"),
                         "rag_stage": "pre",
@@ -211,7 +211,7 @@ class ChatService:
                     {"role": "user", "content": query}
                 ],
                 options={
-                    "rails": ["input", "dialog"],
+                    "rails": ["input", "dialog","output"],
                     "input_vars": {
                         "user_role": payload.get("user_role", "user"),
                         "rag_stage": "post",
